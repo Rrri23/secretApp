@@ -6,6 +6,7 @@ let ejs = require('ejs');
 const encrypt = require('mongoose-encryption');
 const app = express();
 const lodash = require('lodash');
+var md5 = require('md5');
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.set('view engine', 'ejs');
@@ -25,7 +26,7 @@ const userSchema = new Schema({
 console.log(process.env.SECRET);
 //////////////////encrypt///////////////////////////
 
-userSchema.plugin(encrypt, { secret: secret, encryptedFields: ['password'] });
+//userSchema.plugin(encrypt, { secret: secret, encryptedFields: ['password'] });
 
 const User = mongoose.model('User', userSchema);
 let vasy = new User({
@@ -44,7 +45,7 @@ app.route('/login')
     })
     .post((req, res) => {
         let userEmail = req.body.username;
-        let userPassword = req.body.password;
+        let userPassword = md5(req.body.password);
         console.log(userEmail, userPassword);
         User.find({
             email: userEmail,
@@ -74,7 +75,7 @@ app.get('/register', (req, res) => {
 app.post('/register', (req,res) => {
     let user = new User ({
         email: req.body.username,
-        password: req.body.password
+        password: md5(req.body.password)
     });
     user.save().then(() => {
         console.log(user, '   saved to db');
