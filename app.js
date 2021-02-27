@@ -6,7 +6,9 @@ let ejs = require('ejs');
 const encrypt = require('mongoose-encryption');
 const app = express();
 const lodash = require('lodash');
-var md5 = require('md5');
+const bcrypt = require('bcrypt');  //salting and hashing
+
+const saltRounds = 10;
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.set('view engine', 'ejs');
@@ -22,11 +24,6 @@ const userSchema = new Schema({
     email: String,
     password: String
 });
-
-console.log(process.env.SECRET);
-//////////////////encrypt///////////////////////////
-
-//userSchema.plugin(encrypt, { secret: secret, encryptedFields: ['password'] });
 
 const User = mongoose.model('User', userSchema);
 let vasy = new User({
@@ -45,7 +42,12 @@ app.route('/login')
     })
     .post((req, res) => {
         let userEmail = req.body.username;
-        let userPassword = md5(req.body.password);
+        let userPassword = "";     
+        bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
+            if(!err){
+                userPassword = hash;
+            }
+        });       
         console.log(userEmail, userPassword);
         User.find({
             email: userEmail,
@@ -68,33 +70,23 @@ app.get('/register', (req, res) => {
     res.render('register');
 });
 
-// app.get('/secrets', (req, res) => {
-//     res.render('/secrets');
-// })
 
-app.post('/register', (req,res) => {
-    let user = new User ({
-        email: req.body.username,
-        password: md5(req.body.password)
+app.post('/register', (req,res) => {  
+    bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
+        if(err){
+            console.log(err);
+        }else{
+            let user = new User ({
+                email: req.body.username,
+                password: hash
+            });
+            user.save().then(() => {
+                console.log(user, '   saved to db');
+            });
+        }
     });
-    user.save().then(() => {
-        console.log(user, '   saved to db');
-        res.render('page');
-    });
-})
-
-
-
-
-
-
-
-
-
-
-
-
-
+    res.render('page');
+});
 
 
 app.listen(3000, () => console.log('Server is running on port 3000.'));
